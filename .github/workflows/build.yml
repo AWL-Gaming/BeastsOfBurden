@@ -1,4 +1,4 @@
-﻿name: build
+name: build
 
 on:
   push:
@@ -23,8 +23,12 @@ jobs:
           $zip = Join-Path $env:RUNNER_TEMP 'steamcmd.zip'
           Invoke-WebRequest 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip' -OutFile $zip
           Expand-Archive $zip $steam -Force
-          & (Join-Path $steam 'steamcmd.exe') +force_install_dir $game +login anonymous +app_update 896660 validate +quit
-          if ($LASTEXITCODE -ne 0) { throw "steamcmd exited $LASTEXITCODE" }
+          $steamExe = Join-Path $steam 'steamcmd.exe'
+          # First launch lets a freshly downloaded SteamCMD finish its own update before app_update.
+          & $steamExe +quit
+          if (-not (Test-Path $steamExe)) { throw 'SteamCMD bootstrap failed' }
+          & $steamExe +force_install_dir $game +login anonymous +app_update 896660 validate +quit
+          if ($LASTEXITCODE -ne 0) { throw "steamcmd app_update exited $LASTEXITCODE" }
           "VALHEIM_MANAGED_DIR=$(Join-Path $game 'valheim_server_Data\Managed')" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install BepInEx references
