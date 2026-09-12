@@ -1,4 +1,4 @@
-﻿name: build
+name: build
 
 on:
   push:
@@ -31,10 +31,21 @@ jobs:
           Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/digitalroot.valheim.common.references/1.0.12/digitalroot.valheim.common.references.1.0.12.nupkg' -OutFile $drZip
           Expand-Archive $drZip $drRoot -Force
 
+          $bepRoot = Join-Path $root 'bepinex'
+          $bepZip = Join-Path $root 'bepinex.zip'
+          New-Item -ItemType Directory -Path $bepRoot -Force | Out-Null
+          Invoke-WebRequest 'https://thunderstore.io/package/download/denikson/BepInExPack_Valheim/5.4.2350/' -OutFile $bepZip
+          Expand-Archive $bepZip $bepRoot -Force
+          $bepInExDll = Get-ChildItem $bepRoot -Recurse -File -Filter BepInEx.dll | Select-Object -First 1
+          $harmonyDll = Get-ChildItem $bepRoot -Recurse -File -Filter 0Harmony.dll | Select-Object -First 1
+          if (-not $bepInExDll -or -not $harmonyDll) { throw 'Current BepInEx reference assemblies not found' }
+
           Copy-Item (Join-Path $pfRoot 'lib\net46\*.dll') $refs
           Copy-Item (Join-Path $drRoot 'ref\net48\assembly_valheim-publicized.dll') (Join-Path $refs 'assembly_valheim.dll') -Force
           Copy-Item (Join-Path $drRoot 'ref\net48\assembly_googleanalytics-publicized.dll') (Join-Path $refs 'assembly_googleanalytics.dll') -Force
           Copy-Item (Join-Path $drRoot 'ref\net48\assembly_utils-publicized.dll') (Join-Path $refs 'assembly_utils.dll') -Force
+          Copy-Item $bepInExDll.FullName (Join-Path $refs 'BepInEx.dll') -Force
+          Copy-Item $harmonyDll.FullName (Join-Path $refs '0Harmony.dll') -Force
 
           "BEPINEX_CORE_DIR=$refs" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "VALHEIM_MANAGED_DIR=$refs" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
