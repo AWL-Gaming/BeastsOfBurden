@@ -11,8 +11,9 @@ Beasts of Burden was originally created by **jcleveland**. AWL Gaming maintains 
 - Keeps normal player cart attachment as the fallback.
 - Preserves the original BepInEx plugin GUID and configuration compatibility.
 
-## AWL 1.0.5 compatibility work
+## AWL 1.0.6 maintained release
 
+- 1.0.6 keeps the validated 1.0.5 gameplay implementation and adds the standard AWL Gaming storefront badge; gameplay behavior is unchanged.
 - Updated the original 1.0.4 implementation for current Valheim 1.0 APIs.
 - Updated current `Vagon`, `Character`, and `BaseAI` access paths.
 - Added null-safe handling around stale or missing attachment state.

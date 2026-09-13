@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 1.0.6 - 2026-09-13
+
+### Changed
+- Added the standard AWL Gaming badge to the package icon for consistent storefront presentation.
+- Bumped package and plugin version metadata to 1.0.6; gameplay behavior is unchanged from the validated 1.0.5 build.
+
 ## 1.0.5 - 2026-09-13
 
 ### Fixed

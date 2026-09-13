@@ -14,7 +14,7 @@ namespace BeastsOfBurden
     {
         const string pluginGUID = "org.bepinex.plugins.beasts_of_burden";
         const string pluginName = "BeastsOfBurden";
-        public const string pluginVersion = "1.0.5";
+        public const string pluginVersion = "1.0.6";
         public static ManualLogSource logger;
 
         private readonly Harmony harmony = new Harmony(pluginGUID);

@@ -56,5 +56,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BeastsOfBurden-1.0.5
+          name: BeastsOfBurden-1.0.6
           path: BeastsOfBurden/bin/Release/net472/BeastsOfBurden.dll

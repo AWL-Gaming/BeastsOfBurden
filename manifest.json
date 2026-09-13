@@ -1,6 +1,6 @@
 ﻿{
   "name": "BeastsOfBurden",
-  "version_number": "1.0.5",
+  "version_number": "1.0.6",
   "website_url": "https://github.com/AWL-Gaming/BeastsOfBurden",
   "description": "Attach vanilla carts to eligible tamed animals. Maintained for current Valheim by AWL Gaming.",
   "dependencies": [
