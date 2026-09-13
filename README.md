@@ -1,36 +1,49 @@
-﻿# Beasts of Burden
+# Beasts of Burden
 
-AWL Gaming maintains this compatibility fork of jcleveland's Beasts of Burden for current Valheim versions.
+**AWL Gaming maintained compatibility fork for current Valheim releases.**
 
-The mod keeps the original gameplay purpose: compatible tamed animals can pull the vanilla cart, and supported tameables can be commanded and handled as beasts of burden. The original BepInEx plugin GUID is preserved for configuration and mod compatibility.
+Beasts of Burden was originally created by **jcleveland**. AWL Gaming maintains this fork because the original 1.0.4 release no longer works with the current Valheim 1.0 API. AWL Gaming does not claim authorship of the upstream implementation or gameplay design.
 
-## AWL maintenance release
+## What it does
 
-Version 1.0.5 updates the original 1.0.4 implementation for the current Valheim 1.0 API while preserving the existing cart and tameable behavior.
+- Lets eligible tamed animals pull the vanilla cart.
+- Supports the original tameable follow/command behavior.
+- Keeps normal player cart attachment as the fallback.
+- Preserves the original BepInEx plugin GUID and configuration compatibility.
 
-Validated on the current AWL Valheim 1.0 stack with BepInEx 5.4.23.5. The runtime functional test verified that an eligible tamed boar is accepted by `Vagon.CanAttach`, the cart creates a live joint to the boar, and the animal attachment is not treated as a player cart-in-use state.
+## AWL 1.0.5 compatibility work
 
-## Build
+- Updated the original 1.0.4 implementation for current Valheim 1.0 APIs.
+- Updated current `Vagon`, `Character`, and `BaseAI` access paths.
+- Added null-safe handling around stale or missing attachment state.
+- Runtime-tested with a real vanilla cart and a tamed boar: `Vagon.CanAttach` accepted the animal, the cart created a live joint to it, and animal attachment retained the correct non-player `InUse` state.
+- Builds cleanly against the current AWL Valheim runtime with BepInEx 5.4.23.5 and Harmony 2.9.0.
 
-Requirements:
+## Installation
 
-- .NET SDK capable of targeting .NET Framework 4.7.2
-- Current BepInEx core assemblies
-- Current Valheim dedicated-server managed assemblies
+Install on both the server and every client that connects to it. The Thunderstore/Hexium package will install the DLL through your mod manager. For manual installation, place `BeastsOfBurden.dll` under `BepInEx/plugins/`.
 
-Set either MSBuild properties or environment variables:
+## AWL maintenance and support
 
-- `BepInExCoreDir` or `BEPINEX_CORE_DIR`: directory containing `BepInEx.dll` and `0Harmony.dll`
-- `ValheimManagedDir` or `VALHEIM_MANAGED_DIR`: Valheim `valheim_server_Data\Managed` directory
+- AWL Gaming website: https://awlgaming.net
+- Maintained source: https://github.com/AWL-Gaming/BeastsOfBurden
+- Bug reports for this maintained build: https://github.com/AWL-Gaming/BeastsOfBurden/issues
+- Optional support for AWL compatibility maintenance and testing: https://patreon.awlgaming.net
 
-Then run:
+Support is optional and is for AWL's compatibility, testing, packaging, and maintenance work on this fork. The mod remains available regardless of support.
+
+## Original project and attribution
+
+- Original author: jcleveland
+- Original source: https://github.com/jcleveland/clevels-valheim-mods/tree/master/BeastsOfBurden
+- Original Thunderstore package: https://thunderstore.io/c/valheim/p/clevel/BeastsOfBurden/
+
+The upstream repository did not contain a license file or an explicit redistribution/derivative-work grant when this maintenance fork was prepared. `NOTICE.md` records that status transparently. AWL Gaming does not claim that the absence of a license grants rights.
+
+## Source and build
+
+The maintained source is public in the AWL repository above. Build requirements are .NET Framework 4.7.2 targeting support, BepInEx core assemblies, and current Valheim managed assemblies.
 
 ```powershell
 dotnet build .\BeastsOfBurden\BeastsOfBurden.csproj -c Release
 ```
-
-## Upstream and rights
-
-Original project: https://github.com/jcleveland/clevels-valheim-mods/tree/master/BeastsOfBurden
-
-The upstream repository did not contain a license file or explicit redistribution terms when this maintenance fork was prepared. See `NOTICE.md` for provenance and the exact rights notice. AWL Gaming does not claim authorship of the upstream implementation.
