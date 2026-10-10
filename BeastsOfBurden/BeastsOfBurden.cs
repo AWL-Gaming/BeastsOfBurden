@@ -14,7 +14,7 @@ namespace BeastsOfBurden
     {
         const string pluginGUID = "org.bepinex.plugins.beasts_of_burden";
         const string pluginName = "BeastsOfBurden";
-        public const string pluginVersion = "1.0.6";
+        public const string pluginVersion = "1.0.7";
         public static ManualLogSource logger;
 
         private readonly Harmony harmony = new Harmony(pluginGUID);
@@ -374,8 +374,12 @@ namespace BeastsOfBurden
         [HarmonyPatch(typeof(Vagon), "Update")]
         class Vagon_Update_Patch
         {
-            static void Prefix(Vagon __instance, ref Humanoid ___m_useRequester)
+            static void Prefix(Vagon __instance, ref Humanoid ___m_useRequester, ZNetView ___m_nview)
             {
+                // Wait for native ownership transfer before attaching or consuming the request.
+                if (ReferenceEquals(___m_nview, null) || !___m_nview.IsValid() || !___m_nview.IsOwner())
+                    return;
+
                 if (!__instance.IsAttached() && ___m_useRequester)
                 {
                     Character closestTamed = FindClosestAttachableAnimal(__instance);
