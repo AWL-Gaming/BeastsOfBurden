@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7 - 2026-10-24
+
+### Fixed
+- Fixed NullReferenceException errors when petting or renaming Rocky pets. Native Rocky interactions, including attaching and removing items, continue normally.
+
+
 ## 1.0.6 - 2026-09-13
 
 ### Changed

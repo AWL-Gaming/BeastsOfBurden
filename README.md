@@ -11,13 +11,13 @@ Beasts of Burden was originally created by **jcleveland**. AWL Gaming maintains 
 - Keeps normal player cart attachment as the fallback.
 - Preserves the original BepInEx plugin GUID and configuration compatibility.
 
-## AWL 1.0.6 maintained release
+## AWL 1.0.7 maintained release
 
-- 1.0.6 keeps the validated 1.0.5 gameplay implementation and adds the standard AWL Gaming storefront badge; gameplay behavior is unchanged.
+- Fixed errors when petting or renaming Rocky pets. Rocky does not have the Character component used by the animal-command patch, so the patch now leaves its native interactions intact.
 - Updated the original 1.0.4 implementation for current Valheim 1.0 APIs.
 - Updated current `Vagon`, `Character`, and `BaseAI` access paths.
 - Added null-safe handling around stale or missing attachment state.
-- Runtime-tested with a real vanilla cart and a tamed boar: `Vagon.CanAttach` accepted the animal, the cart created a live joint to it, and animal attachment retained the correct non-player `InUse` state.
+- Verified in a connected game: Rocky petting, rename submit/cancel, item attachment/removal, and name persistence after reconnect; Boar, Wolf, and Lox follow commands and native cart attachment/detachment.
 - Builds cleanly against the current AWL Valheim runtime with BepInEx 5.4.23.5 and Harmony 2.9.0.
 
 ## Installation
