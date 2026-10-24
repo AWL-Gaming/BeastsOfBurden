@@ -14,7 +14,7 @@ namespace BeastsOfBurden
     {
         const string pluginGUID = "org.bepinex.plugins.beasts_of_burden";
         const string pluginName = "BeastsOfBurden";
-        public const string pluginVersion = "1.0.6";
+        public const string pluginVersion = "1.0.7";
         public static ManualLogSource logger;
 
         private readonly Harmony harmony = new Harmony(pluginGUID);
@@ -144,19 +144,33 @@ namespace BeastsOfBurden
         /// <returns></returns>
             public static Beasts ParseCharacterType(Character c)
         {
-            if (c.IsPlayer()) return Beasts.player;
+            if (!c)
+            {
+                return Beasts.other;
+            }
+
+            if (c.IsPlayer())
+            {
+                return Beasts.player;
+            }
+
             ZNetView nview = CharacterNView(c);
             if (nview != null && nview.IsValid())
             {
                 GameObject prefab = ZNetScene.instance.GetPrefab(nview.GetZDO().GetPrefab());
                 switch (prefab != null ? prefab.name : string.Empty)
                 {
-                    case "Lox": return Beasts.lox;
-                    case "Wolf": return Beasts.wolf;
-                    case "Boar": return Beasts.boar;
-                    default: return Beasts.other;
+                    case "Lox":
+                        return Beasts.lox;
+                    case "Wolf":
+                        return Beasts.wolf;
+                    case "Boar":
+                        return Beasts.boar;
+                    default:
+                        return Beasts.other;
                 }
             }
+
             logger.LogDebug("Character has invalid m_nview.");
             return Beasts.other;
         }
@@ -283,9 +297,17 @@ namespace BeastsOfBurden
         /// <returns>Character currently attached</returns>
         static Character AttachedCharacter(Vagon cart)
         {
-            if (!cart || !cart.IsAttached()) return null;
+            if (!cart || !cart.IsAttached())
+            {
+                return null;
+            }
+
             ConfigurableJoint joint = VagonAttachJoin(cart);
-            if (joint == null || joint.connectedBody == null) return null;
+            if (joint == null || joint.connectedBody == null)
+            {
+                return null;
+            }
+
             return joint.connectedBody.gameObject.GetComponent<Character>();
         }
 
@@ -327,7 +349,10 @@ namespace BeastsOfBurden
             static void Prefix(Vagon __instance)
             {
                 ConfigurableJoint joint = VagonAttachJoin(__instance);
-                if (joint != null && joint.connectedBody == null) VagonDetach(__instance);
+                if (joint != null && joint.connectedBody == null)
+                {
+                    VagonDetach(__instance);
+                }
             }
         }
 
@@ -339,13 +364,21 @@ namespace BeastsOfBurden
         {
             static bool Prefix(ref bool __result, Vagon __instance)
             {
-                if (__instance.m_container && __instance.m_container.IsInUse()) __result = true;
+                if (__instance.m_container && __instance.m_container.IsInUse())
+                {
+                    __result = true;
+                }
                 else if (__instance.IsAttached())
                 {
                     ConfigurableJoint joint = VagonAttachJoin(__instance);
-                    __result = joint != null && joint.connectedBody != null && joint.connectedBody.gameObject.GetComponent<Player>() != null;
+                    __result = joint != null && joint.connectedBody != null &&
+                        joint.connectedBody.gameObject.GetComponent<Player>() != null;
                 }
-                else __result = false;
+                else
+                {
+                    __result = false;
+                }
+
                 return false;
             }
         }
@@ -359,18 +392,31 @@ namespace BeastsOfBurden
             static bool Prefix(Vagon __instance, GameObject go, ref bool __result)
             {
                 Character character = go != null ? go.GetComponent<Character>() : null;
-                if (character == null || character.IsPlayer() || !character.IsTamed() || !IsAttachableCharacter(character)) return true;
+                if (character == null || character.IsPlayer() || !character.IsTamed() || !IsAttachableCharacter(character))
+                {
+                    return true;
+                }
+
                 if (__instance.transform.up.y < 0.1f || character.InDodge() || character.IsTeleporting())
                 {
-                    __result = false; return false;
+                    __result = false;
+                    return false;
                 }
+
                 __instance.m_attachOffset = GetCartOffsetVectorForCharacter(character);
                 __instance.m_detachDistance = GetCartDetachDistance(character);
-                __result = Vector3.Distance(go.transform.position + __instance.m_attachOffset, __instance.m_attachPoint.position) < __instance.m_detachDistance;
+                __result = Vector3.Distance(
+                    go.transform.position + __instance.m_attachOffset,
+                    __instance.m_attachPoint.position) < __instance.m_detachDistance;
                 return false;
             }
         }
 
+        /// <summary>
+        /// Hooks the current Valheim 1.0 Vagon.Update path. If a player requests cart use,
+        /// prefer the closest eligible tame exactly as the original mod did. The rest of
+        /// Vagon.Update remains vanilla so current networking and cart state are preserved.
+        /// </summary>
         [HarmonyPatch(typeof(Vagon), "Update")]
         class Vagon_Update_Patch
         {
@@ -385,8 +431,12 @@ namespace BeastsOfBurden
                         ___m_useRequester = null;
                     }
                 }
+
                 Character attached = AttachedCharacter(__instance);
-                if (attached != null && !attached.IsPlayer()) __instance.m_detachDistance = GetCartDetachDistance(attached);
+                if (attached != null && !attached.IsPlayer())
+                {
+                    __instance.m_detachDistance = GetCartDetachDistance(attached);
+                }
             }
         }
 
@@ -402,7 +452,10 @@ namespace BeastsOfBurden
         {
             static bool Prefix(ref BaseAI __instance, Character ___m_character)
             {
-                if (___m_character != null && ___m_character.IsTamed() && preventTamedFearOfFire.Value) __instance.m_afraidOfFire = false;
+                if (___m_character != null && ___m_character.IsTamed() && preventTamedFearOfFire.Value)
+                {
+                    __instance.m_afraidOfFire = false;
+                }
                 return true;
             }
         }
@@ -417,22 +470,42 @@ namespace BeastsOfBurden
         {
             static bool Prefix(GameObject go, float dt, ref BaseAI __instance, Character ___m_character)
             {
-                if (___m_character == null || !___m_character.IsTamed()) return true;
+                if (___m_character == null || !___m_character.IsTamed())
+                {
+                    return true;
+                }
+
                 MonsterAI monster = __instance as MonsterAI;
                 GameObject followTarget = monster != null ? monster.GetFollowTarget() : null;
-                if (followTarget == null || followTarget.GetComponent<Player>() == null) return true;
+                if (followTarget == null || followTarget.GetComponent<Player>() == null)
+                {
+                    return true;
+                }
+
                 float distance = Vector3.Distance(go.transform.position, __instance.transform.position);
                 float followDistance;
                 switch (ParseCharacterType(___m_character))
                 {
-                    case Beasts.lox: followDistance = followDistanceLox.Value; break;
+                    case Beasts.lox:
+                        followDistance = followDistanceLox.Value;
+                        break;
                     case Beasts.wolf:
-                    case Beasts.boar: followDistance = followDistanceMediumAnimal.Value; break;
-                    default: return true;
+                    case Beasts.boar:
+                        followDistance = followDistanceMediumAnimal.Value;
+                        break;
+                    default:
+                        return true;
                 }
+
                 bool run = distance > followDistance * 3;
-                if (distance < followDistance) __instance.StopMoving();
-                else BaseAIMoveTo(__instance, dt, go.transform.position, 0f, run);
+                if (distance < followDistance)
+                {
+                    __instance.StopMoving();
+                }
+                else
+                {
+                    BaseAIMoveTo(__instance, dt, go.transform.position, 0f, run);
+                }
                 return false;
             }
         }
