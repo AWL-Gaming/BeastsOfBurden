@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.8 - 2026-10-29
+
+### Fixed
+- Carts return to their original pulling position and detach distance after an animal unhitches.
+- Checking whether an animal can hitch no longer changes the cart's player-pulling settings.
+
+### Added
+- Alternate use on cart handles lets players pull the cart themselves even when a tame animal is nearby.
+- Cart hover text shows the manual-pulling control.
 ## 1.0.7 - 2026-10-24
 
 ### Fixed

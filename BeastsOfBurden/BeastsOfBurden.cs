@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 using System;
+using System.Runtime.CompilerServices;
 
 
 
@@ -14,7 +15,7 @@ namespace BeastsOfBurden
     {
         const string pluginGUID = "org.bepinex.plugins.beasts_of_burden";
         const string pluginName = "BeastsOfBurden";
-        public const string pluginVersion = "1.0.7";
+        public const string pluginVersion = "1.0.8";
         public static ManualLogSource logger;
 
         private readonly Harmony harmony = new Harmony(pluginGUID);
@@ -22,6 +23,44 @@ namespace BeastsOfBurden
         private delegate void VagonAttachToDelegate(Vagon instance, GameObject target);
         private delegate void VagonDetachDelegate(Vagon instance);
         private delegate bool BaseAIMoveToDelegate(BaseAI instance, float dt, Vector3 target, float stopDistance, bool run);
+
+        // Keep each cart's own serialized vanilla values; do not assume a fixed cart offset.
+        private sealed class CartInteractionState
+        {
+            internal readonly Vector3 OriginalOffset;
+            internal readonly float OriginalDetachDistance;
+            internal bool AnimalValuesActive;
+            internal bool ManualPullRequested;
+
+            internal CartInteractionState(Vagon cart)
+            {
+                OriginalOffset = cart.m_attachOffset;
+                OriginalDetachDistance = cart.m_detachDistance;
+            }
+        }
+
+        private static readonly ConditionalWeakTable<Vagon, CartInteractionState> CartStates =
+            new ConditionalWeakTable<Vagon, CartInteractionState>();
+
+        private static CartInteractionState StateFor(Vagon cart)
+        {
+            return CartStates.GetValue(cart, c => new CartInteractionState(c));
+        }
+
+        private static void RestoreCartSettings(Vagon cart)
+        {
+            if (!CartStates.TryGetValue(cart, out CartInteractionState state) || !state.AnimalValuesActive)
+            {
+                return;
+            }
+
+            cart.m_attachOffset = state.OriginalOffset;
+            cart.m_detachDistance = state.OriginalDetachDistance;
+            state.AnimalValuesActive = false;
+        }
+
+        private static readonly AccessTools.FieldRef<Vagon, ZNetView> VagonNView =
+            AccessTools.FieldRefAccess<Vagon, ZNetView>("m_nview");
 
         private static readonly AccessTools.FieldRef<Character, ZNetView> CharacterNView =
             AccessTools.FieldRefAccess<Character, ZNetView>("m_nview");
@@ -334,6 +373,7 @@ namespace BeastsOfBurden
         /// <param name="cart"></param>
         static void AttachCartTo(Character attachTarget, Vagon cart)
         {
+            StateFor(cart).AnimalValuesActive = true;
             cart.m_attachOffset = GetCartOffsetVectorForCharacter(attachTarget);
             cart.m_detachDistance = GetCartDetachDistance(attachTarget);
             VagonAttachTo(cart, attachTarget.gameObject);
@@ -352,6 +392,7 @@ namespace BeastsOfBurden
                 if (joint != null && joint.connectedBody == null)
                 {
                     VagonDetach(__instance);
+                    RestoreCartSettings(__instance);
                 }
             }
         }
@@ -392,7 +433,13 @@ namespace BeastsOfBurden
             static bool Prefix(Vagon __instance, GameObject go, ref bool __result)
             {
                 Character character = go != null ? go.GetComponent<Character>() : null;
-                if (character == null || character.IsPlayer() || !character.IsTamed() || !IsAttachableCharacter(character))
+                if (character != null && character.IsPlayer())
+                {
+                    RestoreCartSettings(__instance);
+                    return true;
+                }
+
+                if (character == null || !character.IsTamed() || !IsAttachableCharacter(character))
                 {
                     return true;
                 }
@@ -403,43 +450,102 @@ namespace BeastsOfBurden
                     return false;
                 }
 
-                __instance.m_attachOffset = GetCartOffsetVectorForCharacter(character);
-                __instance.m_detachDistance = GetCartDetachDistance(character);
+                // A proximity check must not change the cart's stored player settings.
+                Vector3 offset = GetCartOffsetVectorForCharacter(character);
+                float detachDistance = GetCartDetachDistance(character);
                 __result = Vector3.Distance(
-                    go.transform.position + __instance.m_attachOffset,
-                    __instance.m_attachPoint.position) < __instance.m_detachDistance;
+                    go.transform.position + offset,
+                    __instance.m_attachPoint.position) < detachDistance;
                 return false;
             }
         }
 
         /// <summary>
-        /// Hooks the current Valheim 1.0 Vagon.Update path. If a player requests cart use,
-        /// prefer the closest eligible tame exactly as the original mod did. The rest of
-        /// Vagon.Update remains vanilla so current networking and cart state are preserved.
+        /// Alternate use requests manual pulling; normal use keeps animal hitching.
+        /// Valheim provides the alternate-use flag for keyboard and gamepad bindings.
+        /// </summary>
+        [HarmonyPatch(typeof(Vagon), nameof(Vagon.Interact))]
+        class Vagon_Interact_Patch
+        {
+            static void Postfix(Vagon __instance, Humanoid character, bool hold, bool alt)
+            {
+                if (!hold && character != null)
+                {
+                    StateFor(__instance).ManualPullRequested = alt && character.IsPlayer();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Vagon), nameof(Vagon.GetHoverText))]
+        class Vagon_GetHoverText_Patch
+        {
+            static void Postfix(Vagon __instance, ref string __result)
+            {
+                if (!__instance.IsAttached() && !string.IsNullOrEmpty(__result))
+                {
+                    __result += Localization.instance.Localize(
+                        "\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] Pull cart yourself");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The requester keeps its input choice while vanilla transfers cart ownership.
+        /// Only the owner may attach an animal; manual requests fall through to vanilla.
         /// </summary>
         [HarmonyPatch(typeof(Vagon), "Update")]
         class Vagon_Update_Patch
         {
             static void Prefix(Vagon __instance, ref Humanoid ___m_useRequester)
             {
-                if (!__instance.IsAttached() && ___m_useRequester)
-                {
-                    Character closestTamed = FindClosestAttachableAnimal(__instance);
-                    if (closestTamed != null)
-                    {
-                        AttachCartTo(closestTamed, __instance);
-                        ___m_useRequester = null;
-                    }
-                }
-
                 Character attached = AttachedCharacter(__instance);
                 if (attached != null && !attached.IsPlayer())
                 {
                     __instance.m_detachDistance = GetCartDetachDistance(attached);
                 }
+
+                if (!___m_useRequester)
+                {
+                    return;
+                }
+
+                ZNetView nview = VagonNView(__instance);
+                if (nview == null || !nview.IsValid() || !nview.IsOwner())
+                {
+                    return;
+                }
+
+                CartInteractionState state = StateFor(__instance);
+                bool manualPull = state.ManualPullRequested;
+                state.ManualPullRequested = false;
+
+                if (__instance.IsAttached())
+                {
+                    return; // Vanilla will detach the current user.
+                }
+
+                if (manualPull)
+                {
+                    RestoreCartSettings(__instance);
+                    return; // Vanilla will check player position and attach the requester.
+                }
+
+                Character closestTamed = FindClosestAttachableAnimal(__instance);
+                if (closestTamed != null)
+                {
+                    AttachCartTo(closestTamed, __instance);
+                    ___m_useRequester = null;
+                }
+            }
+
+            static void Postfix(Vagon __instance)
+            {
+                if (!__instance.IsAttached())
+                {
+                    RestoreCartSettings(__instance);
+                }
             }
         }
-
         /// <summary>
         /// Changes to BaseAI UpdateAI patch.
         /// 

@@ -12,7 +12,7 @@ This is an AWL-maintained compatibility release of the original Beasts of Burden
 
 ## Current version
 
-1.0.7
+1.0.8
 
 ## Package requirements
 
